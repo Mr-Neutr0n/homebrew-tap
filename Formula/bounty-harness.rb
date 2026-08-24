@@ -13,8 +13,10 @@ class BountyHarness < Formula
     # Install the whole tree; .claude/skills must ship alongside bin/ because
     # the harness anchors execution at its own root.
     libexec.install Dir["*"]
+    # Plain symlinks: the binaries resolve their own repo root through
+    # BASH_SOURCE + readlink, so they work from any cwd once linked.
     %w[bb-init bb-validate bb-run bb-hunt bb-tools].each do |bin_name|
-      (bin/bin_name).write_env_script(libexec / "bin" / bin_name)
+      bin.install_symlink(libexec / "bin" / bin_name)
     end
   end
 
