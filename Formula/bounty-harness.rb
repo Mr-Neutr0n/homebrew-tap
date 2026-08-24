@@ -1,13 +1,11 @@
 class BountyHarness < Formula
-  include Language::Python::Virtualenv
   desc "Bug bounty workflows as curated skill packages for AI coding agents"
   homepage "https://github.com/Mr-Neutr0n/bounty-harness"
   url "https://github.com/Mr-Neutr0n/bounty-harness/releases/download/v3.1.1/bounty-harness-v3.1.1.tar.gz"
   sha256 "c636a424eebd40818b3afaf76c4de15a2dd2b373464ea25142271138292124dd"
   license "MIT"
-  version "3.1.1"
 
-  depends_on "python@3.11"
+  depends_on "python@3.11" => :build
   depends_on "git"
 
   resource "pyyaml" do
@@ -15,31 +13,31 @@ class BountyHarness < Formula
     sha256 "d584d9ec91ad65861cc08d42e834324ef890a082e591037abe114850ff7bbc3e"
   end
 
-  def install
-    # Install the whole tree INCLUDING .claude (skills live there); brew's
-    # Dir["*"] skips dotdirs, so install it explicitly.
-    libexec.install Dir["*"]
-    libexec.install ".claude"
+  # Pure-python fallback build of PyYAML (no libyaml needed)
+  env["PyYAML_WITH_LIBYAML"] = "0"
 
-    # Self-contained runtime via the blessed helper: creates venv and
-    # installs declared resources.
-    virtualenv_install_with_resources
-    # Plain symlinks: the binaries resolve their own repo root through
-    # BASH_SOURCE + readlink, so they work from any cwd once linked.
+  def install
+    libexec.install Dir["*"]
+    libexec.install ".claude"   # skills live here; Dir["*"] skips dotdirs
+
+    system "python3.11", "-m", "pip", "install",
+           "--no-binary=:all:", "--no-deps", "--ignore-installed",
+           "--target", libexec/"vendor", resource("pyyaml").cached_download
+
     %w[bb-init bb-validate bb-run bb-hunt bb-tools].each do |bin_name|
-      bin.install_symlink(libexec / "bin" / bin_name)
+      (bin/bin_name).write_env_script(libexec / "bin" / bin_name,
+                                      PYTHONPATH: libexec / "vendor")
     end
   end
 
   def caveats
     <<~EOS
-      Run bb-init inside a project directory to create engagement context:
+      Start an engagement inside any project directory:
 
         cd your-project && bb-init example.com --program example
 
-      Workflows execute against skills shipped with the formula and write
-      output under the repo root by default. Set OUTDIR in context for
-      per-project evidence directories.
+      Skills ship with the formula under libexec/.claude; workflow output
+      lands under the install root unless OUTDIR is set in context.
     EOS
   end
 
