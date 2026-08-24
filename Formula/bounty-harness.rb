@@ -21,9 +21,9 @@ class BountyHarness < Formula
     libexec.install Dir["*"]
     libexec.install ".claude"
 
-    # Self-contained runtime: venv provides pyyaml for the workflow scripts.
-    venv = virtualenv_create(libexec/"venv", "python@3.11")
-    venv.pip_install resource("pyyaml")
+    # Self-contained runtime via the blessed helper: creates venv and
+    # installs declared resources.
+    virtualenv_install_with_resources
     # Plain symlinks: the binaries resolve their own repo root through
     # BASH_SOURCE + readlink, so they work from any cwd once linked.
     %w[bb-init bb-validate bb-run bb-hunt bb-tools].each do |bin_name|
