@@ -13,10 +13,9 @@ class BountyHarness < Formula
     sha256 "d584d9ec91ad65861cc08d42e834324ef890a082e591037abe114850ff7bbc3e"
   end
 
-  # Pure-python fallback build of PyYAML (no libyaml needed)
-  env["PyYAML_WITH_LIBYAML"] = "0"
-
   def install
+    # Pure-python fallback build of PyYAML (skip optional libyaml ext)
+    ENV["PyYAML_WITH_LIBYAML"] = "0"
     libexec.install Dir["*"]
     libexec.install ".claude"   # skills live here; Dir["*"] skips dotdirs
 
